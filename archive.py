@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import requests
 
 import sys, os, shutil
@@ -20,10 +22,13 @@ def main():
     page = BeautifulSoup(r.text, "html.parser")
     logging.info('Page title: %s' % page.title.string)
 
-    f_main = norm_path("~/src/archive/archive.json")
-    f_new = norm_path("~/src/archive/archive.json_new")
+    root = "~/src/archive/"
+    archive_filename = "archive.json"
+    d_root = norm_path(root)
+    f_main = norm_path(root + archive_filename)
+    f_new = norm_path(root + "archive.json_new")
 
-    with open(f_main, 'a+') as f:
+    with open(f_main, 'r+') as f:
         try:
             current = json.load(f)
         except json.JSONDecodeError:
@@ -32,11 +37,15 @@ def main():
     current.append({'url': to_archive, 'title': page.title.string, 'date': arrow.get().timestamp})
 
     with open(f_new, 'w') as f:
-        json.dump(current, f)
+        json.dump(current, f, indent=2)
 
     shutil.copy(f_new, f_main)
-
     os.remove(f_new)
+
+    os.chdir(d_root)
+    os.system('git commit -m "Auto-update of archive" "%s"' % archive_filename)
+    os.system('git push origin master')
+    logging.info("Committed and pushed!")
 
 if __name__ == "__main__":
     main()
